@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stripefs-test-pod
+spec:
+  containers:
+    - name: app
+      image: ubuntu:22.04
+      command: ["sleep", "infinity"]
+      volumeMounts:
+        - name: striped-storage
+          mountPath: /mnt/striped
+  volumes:
+    - name: striped-storage
+      persistentVolumeClaim:
+        claimName: stripefs-pvc

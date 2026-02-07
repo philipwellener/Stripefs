@@ -1,0 +1,28 @@
+# Build artifacts
+stripefs
+test_cache
+test_stripe
+*.o
+*.d
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+/tmp_test_*
+/mnt_test_*
+
+# Debug
+core
+vgcore.*
+
+# Go build artifacts
+deploy/csi/stripefs-csi-driver

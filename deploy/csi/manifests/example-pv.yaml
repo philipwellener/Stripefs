@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: stripefs-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: stripefs
+  csi:
+    driver: stripefs.csi.example.com
+    volumeHandle: stripefs-vol-001
+    volumeAttributes:
+      ostCount: "4"
+      stripeSize: "1048576"
+      cacheSize: "128"
+      ttl: "30"

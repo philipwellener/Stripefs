@@ -1,0 +1,19 @@
+.git
+.github
+.claude
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# C build artifacts
+src/*.o
+src/*.d
+stripefs
+test_cache
+test_stripe
+
+# Go build artifacts
+deploy/csi/stripefs-csi-driver

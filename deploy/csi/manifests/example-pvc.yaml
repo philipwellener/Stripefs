@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stripefs-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: stripefs
+  resources:
+    requests:
+      storage: 10Gi

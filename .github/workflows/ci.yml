@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libfuse3-dev fuse3
+
+      - name: Build debug
+        run: make debug
+
+      - name: Build release
+        run: make clean && make release
+
+      - name: Run unit tests - cache
+        run: make test_cache && ./test_cache
+
+      - name: Run unit tests - stripe
+        run: make test_stripe && ./test_stripe
+
+      - name: Load FUSE module
+        run: |
+          sudo modprobe fuse
+          sudo chmod 666 /dev/fuse
+
+      - name: Run integration tests
+        run: |
+          mkdir -p /tmp/ost0 /tmp/ost1 /tmp/ost2 /tmp/ost3 /tmp/mnt_striped
+          ./stripefs --mount /tmp/mnt_striped \
+            --ost /tmp/ost0 --ost /tmp/ost1 \
+            --ost /tmp/ost2 --ost /tmp/ost3 --foreground &
+          STRIPEFS_PID=$!
+          sleep 2
+
+          # Basic write/read test
+          echo "hello stripefs" > /tmp/mnt_striped/testfile.txt
+          CONTENT=$(cat /tmp/mnt_striped/testfile.txt)
+          if [ "$CONTENT" != "hello stripefs" ]; then
+            echo "FAIL: read back mismatch"
+            kill $STRIPEFS_PID 2>/dev/null || true
+            exit 1
+          fi
+          echo "PASS: basic write/read"
+
+          # Large file striping test
+          dd if=/dev/urandom of=/tmp/mnt_striped/largefile.bin bs=1M count=16 2>/dev/null
+          ORIG_SUM=$(md5sum /tmp/mnt_striped/largefile.bin | awk '{print $1}')
+          cp /tmp/mnt_striped/largefile.bin /tmp/largefile_copy.bin
+          COPY_SUM=$(md5sum /tmp/largefile_copy.bin | awk '{print $1}')
+          if [ "$ORIG_SUM" != "$COPY_SUM" ]; then
+            echo "FAIL: large file checksum mismatch"
+            kill $STRIPEFS_PID 2>/dev/null || true
+            exit 1
+          fi
+          echo "PASS: large file striping"
+
+          # Cleanup
+          fusermount3 -u /tmp/mnt_striped || true
+          kill $STRIPEFS_PID 2>/dev/null || true
+          wait $STRIPEFS_PID 2>/dev/null || true
+
+      - name: Run stress tests
+        run: |
+          mkdir -p /tmp/stress_ost0 /tmp/stress_ost1 /tmp/stress_ost2 /tmp/stress_ost3 /tmp/mnt_stress
+          ./stripefs --mount /tmp/mnt_stress \
+            --ost /tmp/stress_ost0 --ost /tmp/stress_ost1 \
+            --ost /tmp/stress_ost2 --ost /tmp/stress_ost3 --foreground &
+          STRIPEFS_PID=$!
+          sleep 2
+
+          # Concurrent writes
+          for i in $(seq 1 50); do
+            dd if=/dev/urandom of=/tmp/mnt_stress/stress_$i.bin bs=64K count=4 2>/dev/null &
+          done
+          wait
+
+          # Verify all files readable
+          FAIL=0
+          for i in $(seq 1 50); do
+            if [ ! -f /tmp/mnt_stress/stress_$i.bin ]; then
+              echo "FAIL: stress file $i missing"
+              FAIL=1
+            fi
+          done
+
+          if [ $FAIL -ne 0 ]; then
+            kill $STRIPEFS_PID 2>/dev/null || true
+            exit 1
+          fi
+          echo "PASS: stress test - 50 concurrent writes"
+
+          # Rapid create/delete cycle
+          for i in $(seq 1 100); do
+            echo "data$i" > /tmp/mnt_stress/rapid_$i.txt
+          done
+          for i in $(seq 1 100); do
+            rm /tmp/mnt_stress/rapid_$i.txt
+          done
+          echo "PASS: rapid create/delete cycle"
+
+          # Cleanup
+          fusermount3 -u /tmp/mnt_stress || true
+          kill $STRIPEFS_PID 2>/dev/null || true
+          wait $STRIPEFS_PID 2>/dev/null || true

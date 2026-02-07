@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  stripefs:
+    build: .
+    privileged: true
+    devices:
+      - /dev/fuse:/dev/fuse
+    volumes:
+      - stripefs-data:/data
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      - STRIPE_SIZE=1048576
+    ports: []
+
+volumes:
+  stripefs-data:

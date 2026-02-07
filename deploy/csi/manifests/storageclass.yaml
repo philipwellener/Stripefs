@@ -1,0 +1,11 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: stripefs
+provisioner: stripefs.csi.example.com
+parameters:
+  ostCount: "4"
+  stripeSize: "1048576"
+  cacheSize: "128"
+  ttl: "30"
+volumeBindingMode: Immediate
