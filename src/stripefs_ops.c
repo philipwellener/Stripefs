@@ -58,6 +58,8 @@ static int stripefs_getattr(const char *path, struct stat *stbuf, struct fuse_fi
     if (strcmp(path, "/") == 0) {
         stbuf->st_mode = S_IFDIR | 0755;
         stbuf->st_nlink = 2;
+        stbuf->st_uid = getuid();
+        stbuf->st_gid = getgid();
         return 0;
     }
 
@@ -65,6 +67,8 @@ static int stripefs_getattr(const char *path, struct stat *stbuf, struct fuse_fi
     if (is_stats_path(path)) {
         stbuf->st_mode = S_IFREG | 0444;
         stbuf->st_nlink = 1;
+        stbuf->st_uid = getuid();
+        stbuf->st_gid = getgid();
         /* Generate stats to determine size */
         char buf[8192];
         int len = stats_to_json(ctx->stats, buf, sizeof(buf));
