@@ -82,10 +82,12 @@ jobs:
           sleep 2
 
           # Concurrent writes
+          DD_PIDS=""
           for i in $(seq 1 50); do
             dd if=/dev/urandom of=/tmp/mnt_stress/stress_$i.bin bs=64K count=4 2>/dev/null &
+            DD_PIDS="$DD_PIDS $!"
           done
-          wait
+          for pid in $DD_PIDS; do wait $pid; done
 
           # Verify all files readable
           FAIL=0
