@@ -14,8 +14,8 @@ stripefs decomposes files into fixed-size chunks and distributes them round-robi
 
 ```
 ┌─────────────────────────────────────┐
-│           User Applications          │
-│         (ls, cat, cp, etc.)          │
+│           User Applications         │
+│         (ls, cat, cp, etc.)         │
 └──────────────┬──────────────────────┘
                │  POSIX calls
                ▼
@@ -26,23 +26,23 @@ stripefs decomposes files into fixed-size chunks and distributes them round-robi
                │  FUSE callbacks
                ▼
 ┌──────────────────────────────────────────────────┐
-│                    stripefs                        │
+│                    stripefs                      │
 │  ┌─────────┐  ┌──────────────────┐  ┌──────────┐ │
 │  │ LRU     │  │ FUSE Operations  │  │ Stripe   │ │
 │  │ Cache   │  │ (getattr, read,  │  │ Engine   │ │
 │  │ Layer   │  │  readdir, open,  │  │ (split/  │ │
 │  │         │  │  write, etc.)    │  │ reassem) │ │
 │  └────┬────┘  └───────┬──────────┘  └────┬─────┘ │
-│       │               │                  │        │
-│  ┌────┴───────────────┴──────────────────┴─────┐  │
-│  │         Stripe Distribution Layer            │  │
-│  │  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐    │  │
-│  │  │ OST0 │  │ OST1 │  │ OST2 │  │ OST3 │    │  │
-│  │  └──────┘  └──────┘  └──────┘  └──────┘    │  │
-│  └─────────────────────────────────────────────┘  │
-│  ┌─────────────────────────────────────────────┐  │
-│  │  Stats / Telemetry Engine                    │  │
-│  └─────────────────────────────────────────────┘  │
+│       │               │                  │       │
+│  ┌────┴───────────────┴──────────────────┴─────┐ │
+│  │         Stripe Distribution Layer           │ │
+│  │  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐     │ │
+│  │  │ OST0 │  │ OST1 │  │ OST2 │  │ OST3 │     │ │
+│  │  └──────┘  └──────┘  └──────┘  └──────┘     │ │
+│  └─────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────┐ │
+│  │  Stats / Telemetry Engine                   │ │
+│  └─────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -85,19 +85,19 @@ An LRU cache (bounded, default 128 MB) sits between the FUSE ops layer and the s
 Read request arrives
         │
         ▼
-   ┌─────────┐    cache hit     ┌──────────────┐
-   │  Check   │ ──────────────► │ Check TTL    │
-   │  Cache   │                 │ (expired?)   │
-   └─────────┘                  └──────┬───────┘
-        │                         yes/  \no
-   cache miss                    /      \
-        │                       ▼        ▼
-        ▼                   Evict &    Return
-   ┌──────────┐             re-fetch   cached
-   │  Stripe   │                       data
-   │  Engine   │
-   │  (read    │
-   │  chunks)  │
+   ┌─────────┐    cache hit    ┌──────────────┐
+   │  Check  │ ──────────────► │ Check TTL    │
+   │  Cache  │                 │ (expired?)   │
+   └─────────┘                 └──────┬───────┘
+        │                        yes/  \no
+   cache miss                     /      \
+        │                        ▼        ▼
+        ▼                    Evict &    Return
+   ┌──────────┐              re-fetch   cached
+   │  Stripe  │                         data
+   │  Engine  │
+   │  (read   │
+   │  chunks) │
    └─────┬────┘
          │
          ▼
@@ -213,21 +213,21 @@ stripefs includes a CSI driver that delivers FUSE-mounted striped storage to Kub
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                    Kubernetes Node                         │
-│                                                            │
+│                    Kubernetes Node                       │
+│                                                          │
 │  ┌────────────────┐       ┌──────────────────────────┐    │
-│  │  Consumer Pod   │       │  CSI DaemonSet Pod        │    │
-│  │                 │       │                            │    │
-│  │  /mnt/striped ──┼───────┼─► stripefs (FUSE)         │    │
-│  │  (PVC mount)    │       │     │                      │    │
-│  └────────────────┘       │     ├─► /data/.../ost0     │    │
-│                            │     ├─► /data/.../ost1     │    │
-│                            │     ├─► /data/.../ost2     │    │
-│                            │     └─► /data/.../ost3     │    │
-│                            │                            │    │
-│                            │  stripefs-csi-driver (Go)  │    │
-│                            │  node-driver-registrar     │    │
-│                            └──────────────────────────┘    │
+│  │  Consumer Pod  │       │  CSI DaemonSet Pod        │   │
+│  │                │       │                            │  │
+│  │  /mnt/striped ─┼───────┼─► stripefs (FUSE)          │  │
+│  │  (PVC mount)           │     │                      │  │
+│  └────────────────┘       │     ├─► /data/.../ost0     │  │
+│                           │     ├─► /data/.../ost1     │  │
+│                           │     ├─► /data/.../ost2     │  │
+│                           │     └─► /data/.../ost3     │  │
+│                           │                            │  │
+│                           │  stripefs-csi-driver (Go)  │  │
+│                           │  node-driver-registrar     │  │
+│                           └──────────────────────────┘    │
 └──────────────────────────────────────────────────────────┘
 ```
 
